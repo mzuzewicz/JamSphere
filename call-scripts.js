@@ -1,6 +1,6 @@
 const userName = Math.random().toString(36).slice(2);
 const password = "x";
-document.querySelector('#user-name').innerHTML = userName;
+
 
 
 const localVideoEl = document.querySelector('#local-video');
@@ -10,6 +10,7 @@ let localStream; //a var to hold the local video stream
 let remoteStream; //a var to hold the remote video stream
 let peerConnection; //the peerConnection that the two clients use to talk
 let didIOffer = false;
+
 
 //if trying it on a phone, use this instead...
 const socket = io.connect('https://192.168.2.230:8181/',{
@@ -40,6 +41,7 @@ const call = async e=>{
 
     //create offer
     try{
+        document.querySelector('#user-name').innerHTML = userName;
         console.log("Creating offer...")
         const offer = await peerConnection.createOffer();
         console.log(offer);
@@ -137,6 +139,7 @@ const createPeerConnection = (offerObj)=>{
             }
         })
         
+        //get video and audio tracks from peers, and display on other peer's screen
         peerConnection.addEventListener('track',e=>{
             console.log("Got a track from the other peer!! How exciting")
             console.log(e)
@@ -162,13 +165,40 @@ const addNewIceCandidate = iceCandidate=>{
     console.log("======Added Ice Candidate======")
 }
 
-window.querySelector('#call').addEventListener('click',call);
-window.querySelector('#hangup').addEventListener('click', () => {
-    socket.disconnect(true);
+const hoverBox = document.getElementById("hover-box");
+
+document.querySelector('#call').addEventListener('click',call);
+
+document.querySelector('#join-session').addEventListener('click', ()=>{
+    var errorMsg = document.getElementById("error-msg");
+    errorMsg.textContent = "";
+    hoverBox.classList.add("open");
+});
+
+document.querySelector('#close-hover').addEventListener('click', ()=>{
+    hoverBox.classList.remove("open");
+});
+
+document.querySelector('#confirm-session-code').addEventListener('click', ()=>{
+    var sessionCode = broadcastedOffers.find(obj =>{
+        return obj.offererUserName === document.querySelector('#answer-code').value})
+    if(sessionCode){
+        answerOffer(sessionCode);
+        hoverBox.classList.remove("open");
+    }
+    else{
+        var errorMsg = document.getElementById("error-msg");
+        errorMsg.textContent = "Invalid session code!";
+    }
+});
+
+document.querySelector('#hangup').addEventListener('click', () => {
+    //offers.remove();
     //dirty version, will improve
+    socket.disconnect(true);
     remoteVideoEl.srcObject = null;
     localVideoEl.srcObject = null;
     localStream = null;
     remoteStream = null;
+    //location.href="home.html";
 });
-

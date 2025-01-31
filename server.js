@@ -10,6 +10,16 @@ app.use(express.static(__dirname));
 const key = fs.readFileSync('cert.key');
 const cert = fs.readFileSync('cert.crt');
 
+//offers will contain {}
+const offers = [
+    // offererUserName
+    // offer
+    // offerIceCandidates
+    // answererUserName
+    // answer
+    // answererIceCandidates
+];
+
 //we changed our express setup so we can use https
 //pass the key and cert to createServer on https
 const expressServer = https.createServer({key, cert}, app);
@@ -25,18 +35,10 @@ const io = socketio(expressServer,{
 });
 expressServer.listen(8181);
 
-//offers will contain {}
-const offers = [
-    // offererUserName
-    // offer
-    // offerIceCandidates
-    // answererUserName
-    // answer
-    // answererIceCandidates
-];
+
 const connectedSockets = [
     //username, socketId
-]
+];
 
 //TCP Traffic
 io.on('connection',(socket)=>{
@@ -82,7 +84,7 @@ io.on('connection',(socket)=>{
         console.log(offerObj);
         //emit this answer (offerObj) back to CLIENT1
         //in order to do that, we need CLIENT1's socketid
-        const socketToAnswer = connectedSockets.find(s=>s.userName === offerObj.offererUserName)
+        const socketToAnswer = connectedSockets.find(s=>s.userName === offerObj.offererUserName);
         if(!socketToAnswer){
             console.log("No matching socket")
             return;
@@ -135,7 +137,7 @@ io.on('connection',(socket)=>{
                 console.log("Ice candidate received but could not find offerer")
             }
         }
-        // console.log(offers)
+        console.log(offers)
         
     })
 
