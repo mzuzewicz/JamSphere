@@ -1,10 +1,10 @@
 
-var broadcastedOffers = [];
+var broadcastedOffers;
 
 //on connection get all available offers
 socket.on('availableOffers',offers=>{
-    //console.log(offers);
     broadcastedOffers = offers;
+    console.log(broadcastedOffers);
 
 })
 
@@ -23,13 +23,3 @@ socket.on('receivedIceCandidateFromServer',iceCandidate=>{
     addNewIceCandidate(iceCandidate);
     //console.log(iceCandidate);
 })
-
-function processSessionCode(offers){
-    var joinSessionCode = document.querySelector('#answer-code').value;
-    offers.forEach(o=>{
-        console.log(o.offererUserName);
-        if(joinSessionCode === o.offererUserName){
-            answerOffer(o);
-        };
-    });
-};
