@@ -5,21 +5,30 @@ const app = express();
 const socketio = require("socket.io");
 app.use(express.static(__dirname));
 
+
+//offers will contain {}
+let offers = [
+    // offererUserName
+    // offer
+    // offerIceCandidates
+    // answererUserName
+    // answer
+    // answererIceCandidates
+];
+
+const getOffers = () => {
+    return offers;
+}
+
+module.exports = {
+	offers,
+	getOffers,
+};
+
 //we need a key and cert to run https
 //we generated them with mkcert
 const key = fs.readFileSync("cert.key");
 const cert = fs.readFileSync("cert.crt");
-
-//offers will contain {}
-var offers = [
-	// offererUserName
-	// offer
-	// offerIceCandidates
-	// answererUserName
-	// answer
-	// answererIceCandidates
-];
-
 
 //pass the key and cert to createServer on https
 const expressServer = https.createServer({ key, cert }, app);
@@ -86,7 +95,7 @@ io.on("connection", (socket) => {
 	});
 
 	socket.on("newAnswer", (offerObj, ackFunction) => {
-		console.log(offerObj);
+		//console.log(offerObj);
 		//emit this answer (offerObj) back to CLIENT1
 		//in order to do that, we need CLIENT1's socketid
 		const socketToAnswer = connectedSockets.find(
@@ -158,6 +167,5 @@ io.on("connection", (socket) => {
 				console.log("Ice candidate received but could not find offerer");
 			}
 		}
-		console.log(offers);
 	});
 });

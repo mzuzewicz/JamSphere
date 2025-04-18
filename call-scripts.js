@@ -1,3 +1,4 @@
+
 const userName = Math.random().toString(36).slice(2);
 const password = "x";
 
@@ -48,8 +49,8 @@ const call = async (e) => {
 	try {
 		console.log("Creating offer...");
 		const offer = await peerConnection.createOffer();
-		console.log(offer);
-		console.log(broadcastedOffers);
+		//console.log(offer);
+		//console.log(broadcastedOffers);
 		peerConnection.setLocalDescription(offer);
 		didIOffer = true;
 		socket.emit("newOffer", offer); //send offer to signalingServer
@@ -69,8 +70,8 @@ const answerOffer = async (offerObj) => {
 	await createPeerConnection(offerObj);
 	const answer = await peerConnection.createAnswer({});
 	await peerConnection.setLocalDescription(answer); //CLIENT2 uses the answer as the localDesc
-	console.log(offerObj);
-	console.log(answer);
+	//console.log(offerObj);
+	//console.log(answer);
 	//add the answer to the offerObj so the server knows which offer this is related to
 	offerObj.answer = answer;
 	//emit the answer to the signaling server, so it can emit to CLIENT1
@@ -80,7 +81,7 @@ const answerOffer = async (offerObj) => {
 		peerConnection.addIceCandidate(c);
 		console.log("======Added Ice Candidate======");
 	});
-	console.log(offerIceCandidates);
+	//console.log(offerIceCandidates);
 };
 
 const addAnswer = async (offerObj) => {
@@ -160,7 +161,7 @@ const createPeerConnection = (offerObj) => {
 
 		peerConnection.addEventListener("icecandidate", (e) => {
 			console.log("........Ice candidate found!......");
-			console.log(e);
+			//console.log(e);
 			if (e.candidate) {
 				socket.emit("sendIceCandidateToSignalingServer", {
 					iceCandidate: e.candidate,
@@ -173,7 +174,7 @@ const createPeerConnection = (offerObj) => {
 		//get video and audio tracks from peers, and display on other peer's screen
 		peerConnection.addEventListener("track", (e) => {
 			console.log("Got a track from the other peer!! How exciting");
-			console.log(e);
+			//console.log(e);
 			e.streams[0].getTracks().forEach((track) => {
 				remoteStream.addTrack(track, remoteStream);
 				console.log("Here's an exciting moment... fingers cross");
@@ -197,21 +198,16 @@ const addNewIceCandidate = (iceCandidate) => {
 };
 
 const hangup = () => {
-	//offers.remove();
 	//dirty version, will improve
-	if (peerConnection) {
-		peerConnection.close();
-		localStream.getTracks().forEach(function (track) {
-			track.stop();
-		});
-		socket.disconnect(true);
-		document.querySelector("#user-name").innerHTML = "";
-		localVideoEl.classList.remove("open");
-		remoteVideoEl.classList.remove("open");
-		menuEl.classList.remove("callactive");
-		callButtons.classList.remove("callactive");
-		jamsphereLogo.classList.remove("callactive");
-	}
+	peerConnection.close();
+	localStream.getTracks().forEach(function (track) {track.stop();});
+	socket.disconnect(true);
+	document.querySelector("#user-name").innerHTML = "";
+	localVideoEl.classList.remove("open");
+	remoteVideoEl.classList.remove("open");
+	menuEl.classList.remove("callactive");
+	callButtons.classList.remove("callactive");
+	jamsphereLogo.classList.remove("callactive");
 	/*if (didIOffer) {
     broadcastedOffers.filter((a) => a.offererUserName != userName);
     console.log(broadcastedOffers);

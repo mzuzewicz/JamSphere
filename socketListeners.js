@@ -1,10 +1,9 @@
-
 var broadcastedOffers;
 
 //on connection get all available offers
 socket.on('availableOffers',offers=>{
     broadcastedOffers = offers;
-    console.log(broadcastedOffers);
+    console.log(offers.forEach(o=>console.log(o.offererUserName)));
 
 })
 
