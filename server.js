@@ -5,24 +5,18 @@ const app = express();
 const socketio = require("socket.io");
 app.use(express.static(__dirname));
 
-
 //offers will contain {}
 let offers = [
-    // offererUserName
-    // offer
-    // offerIceCandidates
-    // answererUserName
-    // answer
-    // answererIceCandidates
+	// offererUserName
+	// offer
+	// offerIceCandidates
+	// answererUserName
+	// answer
+	// answererIceCandidates
 ];
 
 const getOffers = () => {
-    return offers;
-}
-
-module.exports = {
-	offers,
-	getOffers,
+	return offers;
 };
 
 //we need a key and cert to run https
@@ -37,7 +31,7 @@ const io = socketio(expressServer, {
 	cors: {
 		origin: [
 			"https://localhost",
-			"https://192.168.2.230", //if using a phone or another computer
+			"https://10.5.0.2", //if using a phone or another computer
 		],
 		methods: ["GET", "POST"],
 	},

@@ -1,18 +1,32 @@
-
-const userName = Math.random().toString(36).slice(2);
+var userName = Math.random().toString(36).slice(2);
 const password = "x";
 
+// large components
 const hoverBox = document.querySelector("#hover-box");
-const hangupButton = document.querySelector("#hangup-button");
 const menuEl = document.querySelector("#menu-buttons");
 const callButtons = document.querySelector("#call-menu");
 const jamsphereLogo = document.querySelector("#jamsphere-header");
 const usernameEl = document.querySelector("#user-name");
 
-var volumeSlider = document.querySelector("#my-range");
+const callButton = document.querySelector("#call");
+const joinSessionButton = document.querySelector("#join-session");
+const closeHoverButton = document.querySelector("#close-hover");
+const confirmSessionButton = document.querySelector("#confirm-session-code");
 
 //menu buttons
+const hangupButton = document.querySelector("#hangup-button");
+const volumeButton = document.querySelector("#set-volume-button");
+const eqButton = document.querySelector("#eq-button");
+const setInputButton = document.querySelector("#set-input-button");
+const setOutputButton = document.querySelector("#set-output-button");
 
+//popup dialogs when menu buttons are pressed e.g. volume, eq etc
+const volumeControlBox = document.querySelector("#volume-slider");
+var volumeSlider = document.querySelector("#vol-control");
+const inputSelector = document.querySelector("#audioInputSelect");
+const outputSelector = document.querySelector("#audioOutputSelect");
+
+//html elements holding video streams from local and remote
 const localVideoEl = document.querySelector("#local-video");
 const remoteVideoEl = document.querySelector("#remote-video");
 
@@ -22,7 +36,7 @@ let peerConnection; //the peerConnection that the two clients use to talk
 let didIOffer = false;
 
 //if trying it on a phone, use this instead...
-const socket = io.connect("https://192.168.2.230:8181/", {
+const socket = io.connect("https://10.5.0.2:8181/", {
 	//const socket = io.connect('https://localhost:8181/',{
 	auth: {
 		userName,
@@ -37,6 +51,132 @@ let peerConfiguration = {
 		},
 	],
 };
+
+const audioInputSelect = document.querySelector("select#audioSource");
+const audioOutputSelect = document.querySelector("select#audioOutput");
+const selectors = [audioInputSelect, audioOutputSelect];
+let hasMic = false;
+let openMic = undefined;
+let hasPermission = false;
+
+audioOutputSelect.disabled = !("sinkId" in HTMLMediaElement.prototype);
+
+function getDevices() {
+	navigator.mediaDevices.enumerateDevices().then(gotDevices);
+}
+
+function gotDevices(deviceInfos) {
+	console.log("gotDevices", deviceInfos);
+	hasMic = false;
+	hasPermission = false;
+	//handles being called several times to update labels. preserve values.
+	const values = selectors.map((select) => select.value);
+	selectors.forEach((select) => {
+		while (select.firstChild) {
+			select.removeChild(select.firstChild);
+		}
+	});
+	for (let i = 0; i !== deviceInfos.length; ++i) {
+		const deviceInfo = deviceInfos[i];
+		if (deviceInfo.deviceId == "") {
+			continue;
+		}
+		//if we get at least one deviceId, then user has granted media permissions
+		hasPermission = true;
+		const option = document.createElement("option");
+		option.value = deviceInfo.deviceId;
+		if (deviceInfo.kind === "audioinput") {
+			hasMic = true;
+			option.text =
+				deviceInfo.label || `microphone ${audioInputSelect.length + 1}`;
+			audioInputSelect.appendChild(option);
+		} else if (deviceInfo.kind === "audiooutput") {
+			option.text =
+				deviceInfo.label || `speaker ${audioOutputSelect.length + 1}`;
+			audioOutputSelect.appendChild(option);
+		} else {
+			console.log("Some other kind of source/device: ", deviceInfo);
+		}
+	}
+	selectors.forEach((select, selectorIndex) => {
+		if (
+			Array.prototype.slice
+				.call(select.childNodes)
+				.some((n) => n.value === values[selectorIndex])
+		) {
+			select.value = values[selectorIndex];
+		}
+	});
+}
+
+//attach audio output device to video element using device/sink ID
+function attachSinkId(element, sinkId) {
+	if (typeof element.sinkId !== "undefined") {
+		element
+			.setSinkId(sinkId)
+			.then(() => {
+				console.log(`Success, audio output device attached: ${sinkId}`);
+			})
+			.catch((error) => {
+				let errorMessage = error;
+				if (error.name === "SecurityError") {
+					errorMessage = `You need to use HTTPS for selecting audio output device: ${error}`;
+				}
+				console.error(errorMessage);
+				// Jump back to first output device in the list as it's the default.
+				audioOutputSelect.selectedIndex = 0;
+			});
+	} else {
+		console.warn("Browser does not support output device Selection.");
+	}
+}
+
+function changeAudioDestination() {
+	const audioDestination = audioOutputSelect.value;
+	attachSinkId(localVideoEl, audioDestination);
+}
+
+function gotStream(stream) {
+	window.stream = stream;
+	localVideoEl.srcObject = stream;
+	if (stream.getAudioTracks()[0]) {
+		openMic = stream.getAudioTracks()[0].getSettings().deviceId;
+	}
+	return getDevices();
+}
+
+// once audio input/output has been changed, restart stream with new constraints
+function restartCall() {
+	const audioSource = audioInputSelect.value || undefined;
+
+	if (hasPermission && openMic == audioSource) {
+		return;
+	}
+	if (window.stream) {
+		window.stream.getTracks().forEach((track) => {
+			track.stop();
+		});
+		openMic = undefined;
+	}
+	const constraints = {
+		audio: true,
+		video: true,
+	};
+	if (hasMic) {
+		constraints["audio"] = {
+			deviceId: audioSource ? { exact: audioSource } : undefined,
+		};
+	}
+	if (!hasPermission || hasMic) {
+		navigator.mediaDevices.getUserMedia(constraints).then(gotStream);
+	}
+}
+
+audioInputSelect.onchange = restartCall;
+audioOutputSelect.onchange = changeAudioDestination;
+navigator.mediaDevices.ondevicechange = getDevices;
+
+getDevices();
 
 //when a client initiates a call
 const call = async (e) => {
@@ -200,7 +340,9 @@ const addNewIceCandidate = (iceCandidate) => {
 const hangup = () => {
 	//dirty version, will improve
 	peerConnection.close();
-	localStream.getTracks().forEach(function (track) {track.stop();});
+	localStream.getTracks().forEach((track) => {
+		track.stop();
+	});
 	socket.disconnect(true);
 	document.querySelector("#user-name").innerHTML = "";
 	localVideoEl.classList.remove("open");
@@ -208,37 +350,102 @@ const hangup = () => {
 	menuEl.classList.remove("callactive");
 	callButtons.classList.remove("callactive");
 	jamsphereLogo.classList.remove("callactive");
-	/*if (didIOffer) {
-    broadcastedOffers.filter((a) => a.offererUserName != userName);
-    console.log(broadcastedOffers);
-  }*/
+	if (isVisible(volumeControlBox)) {
+		volumeControlBox.classList.remove("pressed");
+	}
+	//reloading the page forces a new username code to be generated, which allows a different call to be set up after hangup
+	location.reload();
 };
 
-/*volumeSlider.addEventListener("change", () => {
-	remoteVideoEl.volume = this.value;
-});*/
+volumeButton.addEventListener("click", () => {
+	if (!isVisible(volumeControlBox)) {
+		//close all other popups for readability
+		inputSelector.classList.remove("open");
+		outputSelector.classList.remove("open");
+		volumeControlBox.classList.add("pressed");
 
-document.querySelector("#call").addEventListener("click", () => {
+		const referenceDiv = document.getElementById("set-volume-button");
+		const targetDiv = document.getElementById("volume-slider");
+
+		const rect = referenceDiv.getBoundingClientRect(); // Get reference div position
+		targetDiv.style.position = "absolute";
+		targetDiv.style.top = `${rect.top - 90}px`; // Adjust position relative to reference-div
+		targetDiv.style.left = `${rect.left - 12}px`;
+	} else {
+		volumeControlBox.classList.remove("pressed");
+	}
+});
+
+var setVolume = function () {
+	if (remoteStream.getAudioTracks().length > 0) {
+		remoteVideoEl.volume = volumeSlider.value / 100;
+		console.log("volume after change: ", remoteVideoEl.volume);
+	}
+};
+
+function isVisible(element) {
+	const style = window.getComputedStyle(element);
+	return style.visibility !== "hidden";
+}
+
+callButton.addEventListener("click", () => {
 	socket.emit("checkOffers");
 	call();
 });
 
-document.querySelector("#join-session").addEventListener("click", () => {
+joinSessionButton.addEventListener("click", () => {
 	var errorMsg = document.getElementById("error-msg");
 	errorMsg.textContent = "";
 	hoverBox.classList.add("open");
 });
 
-document.querySelector("#close-hover").addEventListener("click", () => {
+closeHoverButton.addEventListener("click", () => {
 	hoverBox.classList.remove("open");
 });
 
-document
-	.querySelector("#confirm-session-code")
-	.addEventListener("click", () => {
-		answerByCode(broadcastedOffers);
-	});
+confirmSessionButton.addEventListener("click", () => {
+	answerByCode(broadcastedOffers);
+});
 
+// menu button listeners
 hangupButton.addEventListener("click", () => {
 	hangup();
+});
+
+setInputButton.addEventListener("click", () => {
+	if (!isVisible(inputSelector)) {
+		//close all other popups for readability
+		volumeControlBox.classList.remove("pressed");
+		outputSelector.classList.remove("open");
+		inputSelector.classList.add("open");
+
+		const referenceDiv = setInputButton;
+		const targetDiv = inputSelector;
+
+		const rect = referenceDiv.getBoundingClientRect(); // Get reference div position
+		targetDiv.style.position = "absolute";
+		targetDiv.style.top = `${rect.top - 70}px`; // Adjust position relative to reference-div
+		targetDiv.style.left = `${rect.left - 100}px`;
+	} else {
+		inputSelector.classList.remove("open");
+	}
+});
+
+setOutputButton.addEventListener("click", () => {
+	if (!isVisible(outputSelector)) {
+		//close all other popups for readability
+		volumeControlBox.classList.remove("pressed");
+		inputSelector.classList.remove("open");
+		outputSelector.classList.add("open");
+
+		const referenceDiv = setOutputButton;
+		const targetDiv = outputSelector;
+
+		const rect = referenceDiv.getBoundingClientRect(); // Get reference div position
+		targetDiv.style.position = "absolute";
+		targetDiv.style.top = `${rect.top - 70}px`; // Adjust position relative to reference-div
+		targetDiv.style.left = `${rect.left - 100}px`;
+	} else {
+		outputSelector.classList.remove("open");
+	}
 });

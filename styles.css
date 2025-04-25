@@ -30,6 +30,11 @@ html {
 	-webkit-filter: blur(4px);
 }
 
+#call-menu-wrap {
+	position: relative;
+	display: flex;
+}
+
 #call-menu-container {
 	position: fixed;
 	left: 50%;
@@ -58,11 +63,6 @@ html {
 	z-index: 9999;
 }
 
-.audio-controls-container {
-	position: relative;
-	top: 0;
-}
-
 .call-menu-buttons {
 	background-color: rgb(217, 217, 217);
 	width: 100px;
@@ -80,15 +80,6 @@ html {
 
 #hangup-button {
 	background-color: rgb(242, 36, 57);
-}
-
-#eq-button {
-}
-#set-volume-button {
-}
-#set-output-button {
-}
-#set-input-button {
 }
 
 #menu-buttons {
@@ -149,40 +140,6 @@ html {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-}
-
-.volume-slider {
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	appearance: none;
-	height: 100px;
-	width: 30%;
-	background: rgb(34, 40, 49);
-	opacity: 0.7;
-	-webkit-transition: 0.2s;
-	transition: opacity 0.2s;
-}
-
-.volume-slider:hover {
-	opacity: 1;
-}
-
-.volume-slider::-webkit-slider-thumb {
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	appearance: none;
-	width: 15px;
-	height: 15px;
-	background: rgb(0, 173, 181);
-	cursor: pointer;
-	border-radius: 50%;
-}
-
-.volume-slider::-moz-range-thumb {
-	width: 15px;
-	height: 15px;
-	background: rgb(217, 217, 217);
-	cursor: pointer;
 }
 
 #videos {
@@ -286,9 +243,6 @@ html {
 	margin-bottom: 10px;
 }
 
-#confirm-session-code {
-}
-
 #close-hover {
 	background-color: rgb(242, 36, 57);
 }
@@ -306,4 +260,96 @@ html {
 
 #remote-video.open {
 	visibility: visible;
+}
+
+#volume-slider {
+	/*fade-in transition properties*/
+	visibility: hidden;
+	opacity: 0;
+	transition: opacity 250ms ease-in, visibility 0ms ease-in 250ms;
+	z-index: -1;
+	transform: rotate(-90deg);
+}
+
+#volume-slider.pressed {
+	visibility: visible;
+	opacity: 1;
+	transition-delay: 0ms;
+	z-index: 9999;
+}
+
+#audioInputSelect {
+	visibility: hidden;
+	/*fade-in transition properties*/
+	opacity: 0;
+	transition: opacity 250ms ease-in, visibility 0ms ease-in 250ms;
+	z-index: -1;
+}
+
+#audioInputSelect.open {
+	visibility: visible;
+	opacity: 1;
+	transition-delay: 0ms;
+	z-index: 9999;
+}
+
+#audioOutputSelect {
+	/*fade-in transition properties*/
+	visibility: hidden;
+	opacity: 0;
+	transition: opacity 250ms ease-in, visibility 0ms ease-in 250ms;
+	z-index: -1;
+}
+
+#audioOutputSelect.open {
+	visibility: visible;
+	opacity: 1;
+	transition-delay: 0ms;
+	z-index: 9999;
+}
+
+select {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	-ms-appearance: none;
+	appearance: none;
+	outline: 0;
+	box-shadow: none;
+	border: 0 !important;
+	background: rgb(34, 40, 49);
+	background-image: none;
+	flex: 1;
+	padding: 0 0.5em;
+	color: #fff;
+	cursor: pointer;
+	font-size: 1em;
+	font-family: "Open Sans", sans-serif;
+}
+select::-ms-expand {
+	display: none;
+}
+.select {
+	position: relative;
+	display: flex;
+	width: 20em;
+	height: 3em;
+	line-height: 3;
+	background: rgb(34, 40, 49);
+	overflow: hidden;
+	border-radius: 0.25em;
+}
+
+.select::after {
+	content: "\25BC";
+	position: absolute;
+	top: 0;
+	right: 0;
+	padding: 0 1em;
+	background: #2b2e2e;
+	cursor: pointer;
+	pointer-events: none;
+	transition: 0.25s all ease;
+}
+.select:hover::after {
+	color: rgb(0, 173, 181);
 }
