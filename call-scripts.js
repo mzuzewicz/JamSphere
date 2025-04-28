@@ -37,9 +37,8 @@ let remoteStream; //a var to hold the remote video stream
 let peerConnection; //the peerConnection that the two clients use to talk
 let didIOffer = false;
 
-//if trying it on a phone, use this instead...
-const socket = io.connect("https://192.168.2.230:8181/", {
-	//const socket = io.connect('https://localhost:8181/',{
+const socket = io.connect("https://10.154.90.187:8181/", {
+	//const socket = io.connect('https:// ***YOUR LOCAL IP***:8181/',{
 	auth: {
 		userName,
 		password,
@@ -53,7 +52,6 @@ let peerConfiguration = {
 		},
 	],
 };
-
 
 const audioInputSelect = document.querySelector("select#audioSource");
 const audioOutputSelect = document.querySelector("select#audioOutput");
@@ -115,11 +113,9 @@ function gotDevices(deviceInfos) {
 //attach audio output device to video element using device/sink ID
 function attachSinkId(element, sinkId) {
 	if (typeof element.sinkId !== "undefined") {
-		element
-			.setSinkId(sinkId)
-			.then(() => {
-				console.log(`Success, audio output device attached: ${sinkId}`);
-			})
+		element.setSinkId(sinkId).then(() => {
+			console.log(`Success, audio output device attached: ${sinkId}`);
+		});
 	} else {
 		console.warn("Browser does not support output device Selection.");
 	}
@@ -137,7 +133,6 @@ function gotStream(stream) {
 	}
 	return getDevices();
 }
-
 
 // once audio input/output has been changed, restart stream with new constraints
 function restartStream() {
@@ -172,7 +167,6 @@ audioOutputSelect.onchange = changeAudioDestination;
 navigator.mediaDevices.ondevicechange = getDevices;
 
 getDevices();
-
 
 //when a client initiates a call
 const call = async (e) => {
@@ -225,7 +219,7 @@ const addAnswer = async (offerObj) => {
 	//at this point, the offer and answer have been exchanged!
 	//now CLIENT1 needs to set the remote
 	await peerConnection.setRemoteDescription(offerObj.answer);
-	console.log(peerConnection.signalingState)
+	console.log(peerConnection.signalingState);
 };
 
 const answerByCode = (offers) => {
@@ -276,12 +270,11 @@ const fetchUserMedia = () => {
 	});
 };
 
-
 const createPeerConnection = (offerObj) => {
 	return new Promise(async (resolve, reject) => {
 		//RTCPeerConnection is the thing that creates the connection
 		//we can pass a config object, and that config object can contain stun servers
-		//which will fetch us ICE candidates'
+		//which will fetch us ICE candidates
 		peerConnection = await new RTCPeerConnection(peerConfiguration);
 		remoteStream = new MediaStream();
 		remoteVideoEl.srcObject = remoteStream;
@@ -380,7 +373,6 @@ const hangup = () => {
 	location.reload();
 };
 
-
 var setVolume = function () {
 	if (remoteStream.getAudioTracks().length > 0) {
 		remoteVideoEl.volume = volumeSlider.value / 100;
@@ -392,7 +384,6 @@ function isVisible(element) {
 	const style = window.getComputedStyle(element);
 	return style.visibility !== "hidden";
 }
-
 
 setInputButton.addEventListener("click", () => {
 	if (!isVisible(inputSelector)) {

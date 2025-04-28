@@ -31,7 +31,7 @@ const io = socketio(expressServer, {
 	cors: {
 		origin: [
 			"https://localhost",
-			"https://192.168.2.230", //if using a phone or another computer
+			"https://10.154.90.187", //if using a phone or another computer
 		],
 		methods: ["GET", "POST"],
 	},
@@ -90,8 +90,7 @@ io.on("connection", (socket) => {
 
 	socket.on("newAnswer", (offerObj, ackFunction) => {
 		//console.log(offerObj);
-		//emit this answer (offerObj) back to CLIENT1
-		//in order to do that, we need CLIENT1's socketid
+		//emit this answer (offerObj) back to CLIENT1 using CLIENT1's socket ID
 		const socketToAnswer = connectedSockets.find(
 			(s) => s.userName === offerObj.offererUserName
 		);
@@ -99,7 +98,7 @@ io.on("connection", (socket) => {
 			console.log("No matching socket");
 			return;
 		}
-		//we found the matching socket, so we can emit to it!
+		//emit to the matching socket
 		const socketIdToAnswer = socketToAnswer.socketId;
 		//we find the offer to update so we can emit it
 		const offerToUpdate = offers.find(
