@@ -31,7 +31,7 @@ const io = socketio(expressServer, {
 	cors: {
 		origin: [
 			"https://localhost",
-			"https://10.5.0.2", //if using a phone or another computer
+			"https://192.168.2.230", //if using a phone or another computer
 		],
 		methods: ["GET", "POST"],
 	},
@@ -44,7 +44,7 @@ const connectedSockets = [
 
 //TCP Traffic
 io.on("connection", (socket) => {
-	// console.log("Someone has connected");
+	console.log("Someone has connected");
 	const userName = socket.handshake.auth.userName;
 	const password = socket.handshake.auth.password;
 
@@ -83,7 +83,7 @@ io.on("connection", (socket) => {
 			answer: null,
 			answererIceCandidates: [],
 		});
-		// console.log(newOffer.sdp.slice(50))
+		//console.log(newOffer.sdp.slice(50))
 		//send out to all connected sockets EXCEPT the caller
 		socket.broadcast.emit("newOfferAwaiting", offers.slice(-1));
 	});

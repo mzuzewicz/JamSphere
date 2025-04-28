@@ -1,4 +1,6 @@
+// random username variable to determine session code, for users to connect with each other
 var userName = Math.random().toString(36).slice(2);
+// password arbitrary
 const password = "x";
 
 // large components
@@ -36,7 +38,7 @@ let peerConnection; //the peerConnection that the two clients use to talk
 let didIOffer = false;
 
 //if trying it on a phone, use this instead...
-const socket = io.connect("https://10.5.0.2:8181/", {
+const socket = io.connect("https://192.168.2.230:8181/", {
 	//const socket = io.connect('https://localhost:8181/',{
 	auth: {
 		userName,
@@ -51,6 +53,7 @@ let peerConfiguration = {
 		},
 	],
 };
+
 
 const audioInputSelect = document.querySelector("select#audioSource");
 const audioOutputSelect = document.querySelector("select#audioOutput");
@@ -117,15 +120,6 @@ function attachSinkId(element, sinkId) {
 			.then(() => {
 				console.log(`Success, audio output device attached: ${sinkId}`);
 			})
-			.catch((error) => {
-				let errorMessage = error;
-				if (error.name === "SecurityError") {
-					errorMessage = `You need to use HTTPS for selecting audio output device: ${error}`;
-				}
-				console.error(errorMessage);
-				// Jump back to first output device in the list as it's the default.
-				audioOutputSelect.selectedIndex = 0;
-			});
 	} else {
 		console.warn("Browser does not support output device Selection.");
 	}
@@ -133,27 +127,27 @@ function attachSinkId(element, sinkId) {
 
 function changeAudioDestination() {
 	const audioDestination = audioOutputSelect.value;
-	attachSinkId(localVideoEl, audioDestination);
+	attachSinkId(remoteVideoEl, audioDestination);
 }
 
 function gotStream(stream) {
-	window.stream = stream;
-	localVideoEl.srcObject = stream;
+	localStream = stream;
 	if (stream.getAudioTracks()[0]) {
 		openMic = stream.getAudioTracks()[0].getSettings().deviceId;
 	}
 	return getDevices();
 }
 
+
 // once audio input/output has been changed, restart stream with new constraints
-function restartCall() {
-	const audioSource = audioInputSelect.value || undefined;
+function restartStream() {
+	const audioSource = audioInputSelect.value;
 
 	if (hasPermission && openMic == audioSource) {
 		return;
 	}
-	if (window.stream) {
-		window.stream.getTracks().forEach((track) => {
+	if (localStream) {
+		localStream.getTracks().forEach((track) => {
 			track.stop();
 		});
 		openMic = undefined;
@@ -168,15 +162,17 @@ function restartCall() {
 		};
 	}
 	if (!hasPermission || hasMic) {
+		console.log(navigator.mediaDevices.getUserMedia(constraints));
 		navigator.mediaDevices.getUserMedia(constraints).then(gotStream);
 	}
 }
 
-audioInputSelect.onchange = restartCall;
+audioInputSelect.onchange = restartStream;
 audioOutputSelect.onchange = changeAudioDestination;
 navigator.mediaDevices.ondevicechange = getDevices;
 
 getDevices();
+
 
 //when a client initiates a call
 const call = async (e) => {
@@ -219,7 +215,7 @@ const answerOffer = async (offerObj) => {
 	const offerIceCandidates = await socket.emitWithAck("newAnswer", offerObj);
 	offerIceCandidates.forEach((c) => {
 		peerConnection.addIceCandidate(c);
-		console.log("======Added Ice Candidate======");
+		console.log("Added Ice Candidate");
 	});
 	//console.log(offerIceCandidates);
 };
@@ -229,7 +225,7 @@ const addAnswer = async (offerObj) => {
 	//at this point, the offer and answer have been exchanged!
 	//now CLIENT1 needs to set the remote
 	await peerConnection.setRemoteDescription(offerObj.answer);
-	// console.log(peerConnection.signalingState)
+	console.log(peerConnection.signalingState)
 };
 
 const answerByCode = (offers) => {
@@ -280,6 +276,7 @@ const fetchUserMedia = () => {
 	});
 };
 
+
 const createPeerConnection = (offerObj) => {
 	return new Promise(async (resolve, reject) => {
 		//RTCPeerConnection is the thing that creates the connection
@@ -300,7 +297,7 @@ const createPeerConnection = (offerObj) => {
 		});
 
 		peerConnection.addEventListener("icecandidate", (e) => {
-			console.log("........Ice candidate found!......");
+			console.log("Ice candidate found!");
 			//console.log(e);
 			if (e.candidate) {
 				socket.emit("sendIceCandidateToSignalingServer", {
@@ -313,11 +310,10 @@ const createPeerConnection = (offerObj) => {
 
 		//get video and audio tracks from peers, and display on other peer's screen
 		peerConnection.addEventListener("track", (e) => {
-			console.log("Got a track from the other peer!! How exciting");
+			console.log("Got a track from the other peer");
 			//console.log(e);
 			e.streams[0].getTracks().forEach((track) => {
 				remoteStream.addTrack(track, remoteStream);
-				console.log("Here's an exciting moment... fingers cross");
 			});
 		});
 
@@ -329,12 +325,39 @@ const createPeerConnection = (offerObj) => {
 			// console.log(peerConnection.signalingState) //should be have-remote-offer, because client2 has setRemoteDesc on the offer
 		}
 		resolve();
+
+		//Latency Statistics for Testing
+		/*setInterval(() => {
+			peerConnection.getStats(null).then((stats) => {
+			  let statsOutput = "";
+		  
+			  stats.forEach((report) => {
+				statsOutput +=
+				  `<h2>Report: ${report.type}</h2>\n<strong>ID:</strong> ${report.id}<br>\n` +
+				  `<strong>Timestamp:</strong> ${report.timestamp}<br>\n`;
+		  
+				// Now the statistics for this report; we intentionally drop the ones we
+				// sorted to the top above
+		  
+				Object.keys(report).forEach((statName) => {
+				  if (
+					statName !== "id" &&
+					statName !== "timestamp" &&
+					statName !== "type"
+				  ) {
+					statsOutput += `<strong>${statName}:</strong> ${report[statName]}<br>\n`;
+				  }
+				});
+			  });
+			  document.querySelector("#stats-box").innerHTML = statsOutput;
+			});
+		  }, 1000);*/
 	});
 };
 
 const addNewIceCandidate = (iceCandidate) => {
 	peerConnection.addIceCandidate(iceCandidate);
-	console.log("======Added Ice Candidate======");
+	console.log("Added Ice Candidate");
 };
 
 const hangup = () => {
@@ -357,29 +380,11 @@ const hangup = () => {
 	location.reload();
 };
 
-volumeButton.addEventListener("click", () => {
-	if (!isVisible(volumeControlBox)) {
-		//close all other popups for readability
-		inputSelector.classList.remove("open");
-		outputSelector.classList.remove("open");
-		volumeControlBox.classList.add("pressed");
-
-		const referenceDiv = document.getElementById("set-volume-button");
-		const targetDiv = document.getElementById("volume-slider");
-
-		const rect = referenceDiv.getBoundingClientRect(); // Get reference div position
-		targetDiv.style.position = "absolute";
-		targetDiv.style.top = `${rect.top - 90}px`; // Adjust position relative to reference-div
-		targetDiv.style.left = `${rect.left - 12}px`;
-	} else {
-		volumeControlBox.classList.remove("pressed");
-	}
-});
 
 var setVolume = function () {
 	if (remoteStream.getAudioTracks().length > 0) {
 		remoteVideoEl.volume = volumeSlider.value / 100;
-		console.log("volume after change: ", remoteVideoEl.volume);
+		//console.log("volume after change: ", remoteVideoEl.volume);
 	}
 };
 
@@ -388,29 +393,6 @@ function isVisible(element) {
 	return style.visibility !== "hidden";
 }
 
-callButton.addEventListener("click", () => {
-	socket.emit("checkOffers");
-	call();
-});
-
-joinSessionButton.addEventListener("click", () => {
-	var errorMsg = document.getElementById("error-msg");
-	errorMsg.textContent = "";
-	hoverBox.classList.add("open");
-});
-
-closeHoverButton.addEventListener("click", () => {
-	hoverBox.classList.remove("open");
-});
-
-confirmSessionButton.addEventListener("click", () => {
-	answerByCode(broadcastedOffers);
-});
-
-// menu button listeners
-hangupButton.addEventListener("click", () => {
-	hangup();
-});
 
 setInputButton.addEventListener("click", () => {
 	if (!isVisible(inputSelector)) {
@@ -447,5 +429,46 @@ setOutputButton.addEventListener("click", () => {
 		targetDiv.style.left = `${rect.left - 100}px`;
 	} else {
 		outputSelector.classList.remove("open");
+	}
+});
+callButton.addEventListener("click", () => {
+	socket.emit("checkOffers");
+	call();
+});
+
+joinSessionButton.addEventListener("click", () => {
+	var errorMsg = document.getElementById("error-msg");
+	errorMsg.textContent = "";
+	hoverBox.classList.add("open");
+});
+
+closeHoverButton.addEventListener("click", () => {
+	hoverBox.classList.remove("open");
+});
+
+confirmSessionButton.addEventListener("click", () => {
+	answerByCode(broadcastedOffers);
+});
+
+hangupButton.addEventListener("click", () => {
+	hangup();
+});
+
+volumeButton.addEventListener("click", () => {
+	if (!isVisible(volumeControlBox)) {
+		//close all other popups for readability
+		inputSelector.classList.remove("open");
+		outputSelector.classList.remove("open");
+		volumeControlBox.classList.add("pressed");
+
+		const referenceDiv = document.getElementById("set-volume-button");
+		const targetDiv = document.getElementById("volume-slider");
+
+		const rect = referenceDiv.getBoundingClientRect(); // Get reference div position
+		targetDiv.style.position = "absolute";
+		targetDiv.style.top = `${rect.top - 90}px`; // Adjust position relative to reference-div
+		targetDiv.style.left = `${rect.left - 12}px`;
+	} else {
+		volumeControlBox.classList.remove("pressed");
 	}
 });

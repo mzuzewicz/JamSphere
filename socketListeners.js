@@ -13,7 +13,7 @@ socket.on("newOfferAwaiting", (offers) => {
 });
 
 socket.on("answerResponse", (offerObj) => {
-	//console.log(offerObj);
+	console.log(offerObj);
 	addAnswer(offerObj);
 });
 
